@@ -1,16 +1,16 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.web.bind.annotation.*;
-
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.validation.UserValidator;
 
-import java.time.LocalDate;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @RestController
@@ -27,11 +27,7 @@ public class UserController {
 
     @PostMapping
     public User create(@Valid @RequestBody User user) {
-        validateUserExtraRules(user);
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
+        UserValidator.validate(user);
 
         user.setId(nextId++);
         users.put(user.getId(), user);
@@ -49,33 +45,10 @@ public class UserController {
             throw new NoSuchElementException("Пользователь не найден");
         }
 
-        validateUserExtraRules(user);
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
+        UserValidator.validate(user);
 
         users.put(user.getId(), user);
         log.info("Обновлён пользователь: id={}, login={}", user.getId(), user.getLogin());
         return user;
-    }
-
-    private void validateUserExtraRules(User user) {
-        if (user.getLogin() != null && user.getLogin().contains(" ")) {
-            log.warn("Ошибка валидации пользователя: login содержит пробелы");
-            throw new ValidationException("Логин не может содержать пробелы");
-        }
-
-        LocalDate bday = user.getBirthday();
-        if (bday != null && bday.isAfter(LocalDate.now())) {
-            log.warn("Ошибка валидации пользователя: birthday в будущем");
-            throw new ValidationException("Дата рождения не может быть в будущем");
-        }
-    }
-
-    @ExceptionHandler(NoSuchElementException.class)
-    @ResponseStatus(org.springframework.http.HttpStatus.NOT_FOUND)
-    public Map<String, String> handleNotFound(NoSuchElementException e) {
-        return Map.of("error", e.getMessage());
     }
 }
