@@ -24,7 +24,7 @@ public class UserValidator {
         if (user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
-        
+
         String name = user.getName();
         if (name == null || name.isBlank()) {
             user.setName(login);
