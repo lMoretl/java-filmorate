@@ -12,8 +12,17 @@ public class UserValidator {
             throw new ValidationException("Пустое тело запроса");
         }
 
+        String email = user.getEmail();
+        if (email == null || email.isBlank() || !email.contains("@")) {
+            throw new ValidationException("Email должен содержать символ @");
+        }
+
         String login = user.getLogin();
-        if (login != null && login.contains(" ")) {
+        if (login == null || login.isBlank()) {
+            throw new ValidationException("Логин не должен быть пустым");
+        }
+
+        if (login.contains(" ")) {
             throw new ValidationException("Логин не должен содержать пробелы");
         }
 
@@ -25,8 +34,7 @@ public class UserValidator {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
 
-        String name = user.getName();
-        if (name == null || name.isBlank()) {
+        if (user.getName() == null || user.getName().isBlank()) {
             user.setName(login);
         }
     }

@@ -14,6 +14,10 @@ public class FilmValidator {
             throw new ValidationException("Пустое тело запроса");
         }
 
+        if (film.getName() == null || film.getName().isBlank()) {
+            throw new ValidationException("Название не может быть пустым");
+        }
+
         if (film.getDescription() != null && film.getDescription().length() > 200) {
             throw new ValidationException("Описание не должно превышать 200 символов");
         }
@@ -24,6 +28,10 @@ public class FilmValidator {
 
         if (film.getReleaseDate().isBefore(CINEMA_BIRTHDAY)) {
             throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+        }
+
+        if (film.getDuration() == null || film.getDuration() <= 0) {
+            throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
     }
 }
