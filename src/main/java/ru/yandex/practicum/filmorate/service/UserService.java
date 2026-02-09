@@ -7,7 +7,6 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -30,85 +29,70 @@ public class UserService {
     }
 
     public User create(User user) {
-        validateUserExtra(user);
-        normalizeUser(user);
-        User created = userStorage.create(user);
-        log.info("Создан пользователь id={}, login={}", created.getId(), created.getLogin());
-        return created;
+        validateLogin(user);
+        normalizeName(user);
+        return userStorage.create(user);
     }
 
     public User update(User user) {
         if (user.getId() == null) {
             throw new ValidationException("Id должен быть указан");
         }
-        validateUserExtra(user);
-        normalizeUser(user);
-        User updated = userStorage.update(user);
-        log.info("Обновлён пользователь id={}, login={}", updated.getId(), updated.getLogin());
-        return updated;
+        validateLogin(user);
+        normalizeName(user);
+        return userStorage.update(user);
     }
 
     public void addFriend(long id, long friendId) {
-        User user = getExistingUser(id);
-        User friend = getExistingUser(friendId);
+        User user = userStorage.getById(id);
+        User friend = userStorage.getById(friendId);
 
         user.getFriends().add(friendId);
         friend.getFriends().add(id);
 
         userStorage.update(user);
         userStorage.update(friend);
-
-        log.info("Добавлены друзья: {} <-> {}", id, friendId);
     }
 
     public void removeFriend(long id, long friendId) {
-        User user = getExistingUser(id);
-        User friend = getExistingUser(friendId);
+        User user = userStorage.getById(id);
+        User friend = userStorage.getById(friendId);
 
         user.getFriends().remove(friendId);
         friend.getFriends().remove(id);
 
         userStorage.update(user);
         userStorage.update(friend);
-
-        log.info("Удалены из друзей: {} x {}", id, friendId);
     }
 
     public List<User> getFriends(long id) {
-        User user = getExistingUser(id);
+        User user = userStorage.getById(id);
+
         return user.getFriends().stream()
                 .map(userStorage::getById)
                 .collect(Collectors.toList());
     }
 
     public List<User> getCommonFriends(long id, long otherId) {
-        User user = getExistingUser(id);
-        User other = getExistingUser(otherId);
+        User user = userStorage.getById(id);
+        User otherUser = userStorage.getById(otherId);
 
-        Set<Long> a = user.getFriends();
-        Set<Long> b = other.getFriends();
+        Set<Long> userFriends = user.getFriends();
+        Set<Long> otherUserFriends = otherUser.getFriends();
 
-        return a.stream()
-                .filter(b::contains)
+        return userFriends.stream()
+                .filter(otherUserFriends::contains)
                 .map(userStorage::getById)
                 .collect(Collectors.toList());
     }
 
-    private User getExistingUser(long id) {
-        try {
-            return userStorage.getById(id);
-        } catch (NoSuchElementException e) {
-            throw e;
-        }
-    }
-
-    private void validateUserExtra(User user) {
-        if (user.getLogin() != null && user.getLogin().contains(" ")) {
+    private void validateLogin(User user) {
+        if (user.getLogin().contains(" ")) {
             throw new ValidationException("Логин не должен содержать пробелы");
         }
     }
 
-    private void normalizeUser(User user) {
+    private void normalizeName(User user) {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }

@@ -34,57 +34,49 @@ public class FilmService {
     }
 
     public Film create(Film film) {
-        validateFilmExtra(film);
-        Film created = filmStorage.create(film);
-        log.info("Создан фильм id={}, name={}", created.getId(), created.getName());
-        return created;
+        validateReleaseDate(film);
+        return filmStorage.create(film);
     }
 
     public Film update(Film film) {
         if (film.getId() == null) {
             throw new ValidationException("Id должен быть указан");
         }
-        validateFilmExtra(film);
-        Film updated = filmStorage.update(film);
-        log.info("Обновлён фильм id={}, name={}", updated.getId(), updated.getName());
-        return updated;
+        validateReleaseDate(film);
+        return filmStorage.update(film);
     }
 
     public void addLike(long filmId, long userId) {
         Film film = filmStorage.getById(filmId);
         userStorage.getById(userId);
 
-        boolean added = film.getLikes().add(userId);
+        film.getLikes().add(userId);
         filmStorage.update(film);
-
-        log.info("Лайк фильму {} от пользователя {} (added={})", filmId, userId, added);
     }
 
     public void removeLike(long filmId, long userId) {
         Film film = filmStorage.getById(filmId);
         userStorage.getById(userId);
 
-        boolean removed = film.getLikes().remove(userId);
+        film.getLikes().remove(userId);
         filmStorage.update(film);
-
-        log.info("Удаление лайка фильму {} от пользователя {} (removed={})", filmId, userId, removed);
     }
 
     public List<Film> getPopular(int count) {
-        int limit = (count <= 0) ? 10 : count;
-
         return filmStorage.getAll().stream()
                 .sorted(Comparator
-                        .comparingInt((Film f) -> f.getLikes() == null ? 0 : f.getLikes().size())
+                        .comparingInt((Film film) -> film.getLikes().size())
                         .reversed()
                         .thenComparing(Film::getId))
-                .limit(limit)
+                .limit(count)
                 .toList();
     }
 
-    private void validateFilmExtra(Film film) {
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(CINEMA_BIRTHDAY)) {
-            throw new ValidationException("Дата релиза — не раньше 28 декабря 1895 года");
+    private void validateReleaseDate(Film film) {
+        if (film.getReleaseDate().isBefore(CINEMA_BIRTHDAY)) {
+            throw new ValidationException(
+                    "Дата релиза — не раньше 28 декабря 1895 года"
+            );
         }
     }
 }
