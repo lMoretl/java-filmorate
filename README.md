@@ -131,3 +131,4 @@ SELECT m.name
 FROM films f
 JOIN mpa m ON f.mpa_id = m.id
 WHERE f.id = 1;
+
