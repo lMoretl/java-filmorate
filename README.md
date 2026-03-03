@@ -81,6 +81,7 @@
 
 ```sql
 SELECT * FROM films;
+```
 
 ---
 
@@ -95,6 +96,7 @@ LEFT JOIN film_likes fl ON f.id = fl.film_id
 GROUP BY f.id
 ORDER BY likes_count DESC
 LIMIT 10;
+```
 
 ---
 
@@ -105,6 +107,7 @@ SELECT g.name
 FROM film_genres fg
 JOIN genres g ON fg.genre_id = g.id
 WHERE fg.film_id = 1;
+```
 
 ---
 
@@ -121,6 +124,7 @@ WHERE f1.user_id = 1
   AND f2.user_id = 2
   AND f1.status = 'CONFIRMED'
   AND f2.status = 'CONFIRMED';
+```
 
 ---
 
@@ -131,4 +135,5 @@ SELECT m.name
 FROM films f
 JOIN mpa m ON f.mpa_id = m.id
 WHERE f.id = 1;
+```
 
