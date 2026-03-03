@@ -82,6 +82,8 @@
 ```sql
 SELECT * FROM films;
 
+---
+
 ### Получить топ-10 популярных фильмов
 
 ```sql
@@ -94,6 +96,8 @@ GROUP BY f.id
 ORDER BY likes_count DESC
 LIMIT 10;
 
+---
+
 ### Получить жанры конкретного фильма
 
 ```sql
@@ -101,6 +105,8 @@ SELECT g.name
 FROM film_genres fg
 JOIN genres g ON fg.genre_id = g.id
 WHERE fg.film_id = 1;
+
+---
 
 ### Получить общих друзей двух пользователей
 
@@ -115,6 +121,8 @@ WHERE f1.user_id = 1
   AND f2.user_id = 2
   AND f1.status = 'CONFIRMED'
   AND f2.status = 'CONFIRMED';
+
+---
 
 ### Получить MPA рейтинг фильма
 
