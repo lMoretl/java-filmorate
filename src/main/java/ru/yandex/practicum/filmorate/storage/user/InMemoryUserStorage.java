@@ -3,8 +3,10 @@ package ru.yandex.practicum.filmorate.storage.user;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.User;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -12,12 +14,14 @@ import java.util.NoSuchElementException;
 public class InMemoryUserStorage implements UserStorage {
 
     private final Map<Long, User> users = new HashMap<>();
+    private final Map<Long, List<Long>> friendships = new HashMap<>();
     private long nextId = 1;
 
     @Override
     public User create(User user) {
         user.setId(nextId++);
         users.put(user.getId(), user);
+        friendships.put(user.getId(), new ArrayList<>());
         return user;
     }
 
@@ -54,5 +58,49 @@ public class InMemoryUserStorage implements UserStorage {
             throw new NoSuchElementException("Пользователь не найден");
         }
         users.remove(id);
+        friendships.remove(id);
+        friendships.values().forEach(friendIds -> friendIds.remove(id));
+    }
+
+    @Override
+    public void addFriend(long userId, long friendId) {
+        getById(userId);
+        getById(friendId);
+
+        List<Long> friendIds = friendships.get(userId);
+        if (!friendIds.contains(friendId)) {
+            friendIds.add(friendId);
+        }
+    }
+
+    @Override
+    public void removeFriend(long userId, long friendId) {
+        getById(userId);
+        getById(friendId);
+
+        friendships.get(userId).remove(friendId);
+    }
+
+    @Override
+    public List<User> getFriends(long userId) {
+        getById(userId);
+
+        return friendships.get(userId).stream()
+                .map(this::getById)
+                .toList();
+    }
+
+    @Override
+    public List<User> getCommonFriends(long userId, long otherUserId) {
+        getById(userId);
+        getById(otherUserId);
+
+        List<Long> userFriends = friendships.get(userId);
+        List<Long> otherUserFriends = friendships.get(otherUserId);
+
+        return userFriends.stream()
+                .filter(otherUserFriends::contains)
+                .map(this::getById)
+                .toList();
     }
 }

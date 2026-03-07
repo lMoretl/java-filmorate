@@ -1,24 +1,18 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-@Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserStorage userStorage;
-
-    public UserService(UserStorage userStorage) {
-        this.userStorage = userStorage;
-    }
 
     public List<User> getAll() {
         return List.copyOf(userStorage.getAll());
@@ -44,50 +38,34 @@ public class UserService {
     }
 
     public void addFriend(long id, long friendId) {
-        User user = userStorage.getById(id);
-        User friend = userStorage.getById(friendId);
+        if (id == friendId) {
+            throw new ValidationException("Нельзя добавить себя в друзья");
+        }
 
-        user.getFriends().add(friendId);
-        friend.getFriends().add(id);
-
-        userStorage.update(user);
-        userStorage.update(friend);
+        userStorage.getById(id);
+        userStorage.getById(friendId);
+        userStorage.addFriend(id, friendId);
     }
 
     public void removeFriend(long id, long friendId) {
-        User user = userStorage.getById(id);
-        User friend = userStorage.getById(friendId);
-
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(id);
-
-        userStorage.update(user);
-        userStorage.update(friend);
+        userStorage.getById(id);
+        userStorage.getById(friendId);
+        userStorage.removeFriend(id, friendId);
     }
 
     public List<User> getFriends(long id) {
-        User user = userStorage.getById(id);
-
-        return user.getFriends().stream()
-                .map(userStorage::getById)
-                .collect(Collectors.toList());
+        userStorage.getById(id);
+        return userStorage.getFriends(id);
     }
 
     public List<User> getCommonFriends(long id, long otherId) {
-        User user = userStorage.getById(id);
-        User otherUser = userStorage.getById(otherId);
-
-        Set<Long> userFriends = user.getFriends();
-        Set<Long> otherUserFriends = otherUser.getFriends();
-
-        return userFriends.stream()
-                .filter(otherUserFriends::contains)
-                .map(userStorage::getById)
-                .collect(Collectors.toList());
+        userStorage.getById(id);
+        userStorage.getById(otherId);
+        return userStorage.getCommonFriends(id, otherId);
     }
 
     private void validateLogin(User user) {
-        if (user.getLogin().contains(" ")) {
+        if (user.getLogin() != null && user.getLogin().contains(" ")) {
             throw new ValidationException("Логин не должен содержать пробелы");
         }
     }

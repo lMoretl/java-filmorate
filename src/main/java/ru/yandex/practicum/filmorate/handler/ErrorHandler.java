@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.handler;
 
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,11 +13,13 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<Map<String, String>> handleValidation(ValidationException e) {
+        log.error("Validation error: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));
     }
@@ -31,24 +34,29 @@ public class ErrorHandler {
             msg = "Ошибка валидации";
         }
 
+        log.error("Bean validation error: {}", msg);
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", msg));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, String>> handleConstraintViolation(ConstraintViolationException e) {
+        log.error("Constraint violation: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", "Ошибка валидации"));
     }
 
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, String>> handleNotFound(NoSuchElementException e) {
+        log.error("Object not found: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", e.getMessage()));
     }
 
     @ExceptionHandler(Throwable.class)
     public ResponseEntity<Map<String, String>> handleOther(Throwable e) {
+        log.error("Unexpected error", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Произошла непредвиденная ошибка"));
     }
