@@ -19,7 +19,7 @@ public class ErrorHandler {
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<Map<String, String>> handleValidation(ValidationException e) {
-        log.warn("Validation error: {}", e.getMessage());
+        log.error("Validation error: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));
     }
@@ -30,11 +30,11 @@ public class ErrorHandler {
                 .map(err -> err.getDefaultMessage())
                 .collect(Collectors.joining("; "));
 
-        if (msg.isBlank()) {
+        if (msg == null || msg.isBlank()) {
             msg = "Ошибка валидации";
         }
 
-        log.warn("Bean validation error: {}", msg);
+        log.error("Bean validation error: {}", msg);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", msg));
@@ -42,14 +42,14 @@ public class ErrorHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, String>> handleConstraintViolation(ConstraintViolationException e) {
-        log.warn("Constraint violation: {}", e.getMessage());
+        log.error("Constraint violation: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", "Ошибка валидации"));
     }
 
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, String>> handleNotFound(NoSuchElementException e) {
-        log.warn("Object not found: {}", e.getMessage());
+        log.error("Object not found: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", e.getMessage()));
     }

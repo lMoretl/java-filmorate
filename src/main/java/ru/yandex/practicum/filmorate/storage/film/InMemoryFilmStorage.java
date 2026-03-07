@@ -4,7 +4,9 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -54,5 +56,28 @@ public class InMemoryFilmStorage implements FilmStorage {
             throw new NoSuchElementException("Фильм не найден");
         }
         films.remove(id);
+    }
+
+    @Override
+    public void addLike(long filmId, long userId) {
+        Film film = getById(filmId);
+        film.getLikes().add(userId);
+    }
+
+    @Override
+    public void removeLike(long filmId, long userId) {
+        Film film = getById(filmId);
+        film.getLikes().remove(userId);
+    }
+
+    @Override
+    public List<Film> getPopular(int count) {
+        return films.values().stream()
+                .sorted(Comparator
+                        .comparingInt((Film film) -> film.getLikes().size())
+                        .reversed()
+                        .thenComparing(Film::getId))
+                .limit(count)
+                .toList();
     }
 }

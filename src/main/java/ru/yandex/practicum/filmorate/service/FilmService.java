@@ -1,11 +1,12 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.genre.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
@@ -19,7 +20,8 @@ public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final JdbcTemplate jdbcTemplate;
+    private final MpaDbStorage mpaStorage;
+    private final GenreDbStorage genreStorage;
 
     public List<Film> getAll() {
         return List.copyOf(filmStorage.getAll());
@@ -49,44 +51,17 @@ public class FilmService {
     public void addLike(long filmId, long userId) {
         filmStorage.getById(filmId);
         userStorage.getById(userId);
-
-        jdbcTemplate.update(
-                "MERGE INTO film_likes (film_id, user_id) KEY (film_id, user_id) VALUES (?, ?)",
-                filmId,
-                userId
-        );
+        filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(long filmId, long userId) {
         filmStorage.getById(filmId);
         userStorage.getById(userId);
-
-        jdbcTemplate.update(
-                "DELETE FROM film_likes WHERE film_id = ? AND user_id = ?",
-                filmId,
-                userId
-        );
+        filmStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getPopular(int count) {
-        int limit = count > 0 ? count : 10;
-
-        List<Long> filmIds = jdbcTemplate.query(
-                """
-                SELECT f.id
-                FROM films f
-                LEFT JOIN film_likes fl ON f.id = fl.film_id
-                GROUP BY f.id
-                ORDER BY COUNT(fl.user_id) DESC, f.id ASC
-                LIMIT ?
-                """,
-                (rs, rowNum) -> rs.getLong("id"),
-                limit
-        );
-
-        return filmIds.stream()
-                .map(filmStorage::getById)
-                .toList();
+        return filmStorage.getPopular(count);
     }
 
     private void validateReleaseDate(Film film) {
@@ -96,29 +71,15 @@ public class FilmService {
     }
 
     private void validateMpaAndGenres(Film film) {
-
-        Integer mpaId = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM mpa WHERE id = ?",
-                Integer.class,
-                film.getMpa().getId()
-        );
-
-        if (mpaId == null || mpaId == 0) {
-            throw new java.util.NoSuchElementException("MPA рейтинг не найден");
+        if (film.getMpa() == null || film.getMpa().getId() == null) {
+            throw new ValidationException("MPA рейтинг должен быть указан");
         }
+
+        mpaStorage.getById(film.getMpa().getId());
 
         if (film.getGenres() != null) {
             for (var genre : film.getGenres()) {
-
-                Integer genreExists = jdbcTemplate.queryForObject(
-                        "SELECT COUNT(*) FROM genres WHERE id = ?",
-                        Integer.class,
-                        genre.getId()
-                );
-
-                if (genreExists == null || genreExists == 0) {
-                    throw new java.util.NoSuchElementException("Жанр не найден");
-                }
+                genreStorage.getById(genre.getId());
             }
         }
     }

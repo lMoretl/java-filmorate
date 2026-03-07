@@ -15,6 +15,7 @@ import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,14 +31,9 @@ class FilmorateApplicationTests {
 
     @Test
     void testCreateAndFindUserById() {
-        User user = new User();
-        user.setEmail("test@mail.ru");
-        user.setLogin("testLogin");
-        user.setName("Test User");
-        user.setBirthday(LocalDate.of(2000, 1, 1));
+        User user = createUser("test@mail.ru", "testLogin", "Test User", LocalDate.of(2000, 1, 1));
 
         User created = userStorage.create(user);
-
         assertNotNull(created.getId());
 
         User found = userStorage.getById(created.getId());
@@ -51,12 +47,7 @@ class FilmorateApplicationTests {
 
     @Test
     void testUpdateUser() {
-        User user = new User();
-        user.setEmail("old@mail.ru");
-        user.setLogin("oldLogin");
-        user.setName("Old Name");
-        user.setBirthday(LocalDate.of(1999, 5, 5));
-
+        User user = createUser("old@mail.ru", "oldLogin", "Old Name", LocalDate.of(1999, 5, 5));
         User created = userStorage.create(user);
 
         created.setEmail("new@mail.ru");
@@ -74,19 +65,8 @@ class FilmorateApplicationTests {
 
     @Test
     void testGetAllUsers() {
-        User user1 = new User();
-        user1.setEmail("u1@mail.ru");
-        user1.setLogin("u1");
-        user1.setName("User 1");
-        user1.setBirthday(LocalDate.of(2001, 1, 1));
-        userStorage.create(user1);
-
-        User user2 = new User();
-        user2.setEmail("u2@mail.ru");
-        user2.setLogin("u2");
-        user2.setName("User 2");
-        user2.setBirthday(LocalDate.of(2002, 2, 2));
-        userStorage.create(user2);
+        userStorage.create(createUser("u1@mail.ru", "u1", "User 1", LocalDate.of(2001, 1, 1)));
+        userStorage.create(createUser("u2@mail.ru", "u2", "User 2", LocalDate.of(2002, 2, 2)));
 
         Collection<User> users = userStorage.getAll();
 
@@ -95,20 +75,61 @@ class FilmorateApplicationTests {
     }
 
     @Test
+    void testAddAndGetFriends() {
+        User user1 = userStorage.create(createUser("user1@mail.ru", "user1", "User 1", LocalDate.of(2000, 1, 1)));
+        User user2 = userStorage.create(createUser("user2@mail.ru", "user2", "User 2", LocalDate.of(2000, 2, 2)));
+
+        userStorage.addFriend(user1.getId(), user2.getId());
+
+        List<User> friends = userStorage.getFriends(user1.getId());
+
+        assertEquals(1, friends.size());
+        assertEquals(user2.getId(), friends.get(0).getId());
+    }
+
+    @Test
+    void testRemoveFriend() {
+        User user1 = userStorage.create(createUser("user3@mail.ru", "user3", "User 3", LocalDate.of(2000, 3, 3)));
+        User user2 = userStorage.create(createUser("user4@mail.ru", "user4", "User 4", LocalDate.of(2000, 4, 4)));
+
+        userStorage.addFriend(user1.getId(), user2.getId());
+        userStorage.removeFriend(user1.getId(), user2.getId());
+
+        List<User> friends = userStorage.getFriends(user1.getId());
+
+        assertTrue(friends.isEmpty());
+    }
+
+    @Test
+    void testGetCommonFriends() {
+        User user1 = userStorage.create(createUser("common1@mail.ru", "common1", "Common 1", LocalDate.of(2000, 1, 1)));
+        User user2 = userStorage.create(createUser("common2@mail.ru", "common2", "Common 2", LocalDate.of(2000, 2, 2)));
+        User commonFriend = userStorage.create(createUser("common3@mail.ru", "common3", "Common 3", LocalDate.of(2000, 3, 3)));
+
+        userStorage.addFriend(user1.getId(), commonFriend.getId());
+        userStorage.addFriend(user2.getId(), commonFriend.getId());
+
+        List<User> commonFriends = userStorage.getCommonFriends(user1.getId(), user2.getId());
+
+        assertEquals(1, commonFriends.size());
+        assertEquals(commonFriend.getId(), commonFriends.get(0).getId());
+    }
+
+    @Test
     void testCreateAndFindFilmById() {
-        Film film = new Film();
-        film.setName("Interstellar");
-        film.setDescription("Sci-fi movie");
-        film.setReleaseDate(LocalDate.of(2014, 11, 7));
-        film.setDuration(169);
-        film.setMpa(new Mpa(3, "PG-13"));
-        film.setGenres(Set.of(
-                new Genre(1, "Комедия"),
-                new Genre(2, "Драма")
-        ));
+        Film film = createFilm(
+                "Interstellar",
+                "Sci-fi movie",
+                LocalDate.of(2014, 11, 7),
+                169,
+                new Mpa(3, "PG-13"),
+                Set.of(
+                        new Genre(1, "Комедия"),
+                        new Genre(2, "Драма")
+                )
+        );
 
         Film created = filmStorage.create(film);
-
         assertNotNull(created.getId());
 
         Film found = filmStorage.getById(created.getId());
@@ -129,13 +150,14 @@ class FilmorateApplicationTests {
 
     @Test
     void testUpdateFilm() {
-        Film film = new Film();
-        film.setName("Old Film");
-        film.setDescription("Old description");
-        film.setReleaseDate(LocalDate.of(2000, 1, 1));
-        film.setDuration(120);
-        film.setMpa(new Mpa(1, "G"));
-        film.setGenres(Set.of(new Genre(1, "Комедия")));
+        Film film = createFilm(
+                "Old Film",
+                "Old description",
+                LocalDate.of(2000, 1, 1),
+                120,
+                new Mpa(1, "G"),
+                Set.of(new Genre(1, "Комедия"))
+        );
 
         Film created = filmStorage.create(film);
 
@@ -164,27 +186,111 @@ class FilmorateApplicationTests {
 
     @Test
     void testGetAllFilms() {
-        Film film1 = new Film();
-        film1.setName("Film 1");
-        film1.setDescription("Desc 1");
-        film1.setReleaseDate(LocalDate.of(2001, 1, 1));
-        film1.setDuration(100);
-        film1.setMpa(new Mpa(1, "G"));
-        film1.setGenres(Set.of(new Genre(1, "Комедия")));
-        filmStorage.create(film1);
+        filmStorage.create(createFilm(
+                "Film 1",
+                "Desc 1",
+                LocalDate.of(2001, 1, 1),
+                100,
+                new Mpa(1, "G"),
+                Set.of(new Genre(1, "Комедия"))
+        ));
 
-        Film film2 = new Film();
-        film2.setName("Film 2");
-        film2.setDescription("Desc 2");
-        film2.setReleaseDate(LocalDate.of(2002, 2, 2));
-        film2.setDuration(110);
-        film2.setMpa(new Mpa(2, "PG"));
-        film2.setGenres(Set.of(new Genre(2, "Драма")));
-        filmStorage.create(film2);
+        filmStorage.create(createFilm(
+                "Film 2",
+                "Desc 2",
+                LocalDate.of(2002, 2, 2),
+                110,
+                new Mpa(2, "PG"),
+                Set.of(new Genre(2, "Драма"))
+        ));
 
         Collection<Film> films = filmStorage.getAll();
 
         assertNotNull(films);
         assertTrue(films.size() >= 2);
+    }
+
+    @Test
+    void testAddAndRemoveLike() {
+        User user = userStorage.create(createUser("like@mail.ru", "likeUser", "Like User", LocalDate.of(2001, 1, 1)));
+
+        Film film = filmStorage.create(createFilm(
+                "Liked Film",
+                "Liked description",
+                LocalDate.of(2010, 1, 1),
+                100,
+                new Mpa(1, "G"),
+                Set.of(new Genre(1, "Комедия"))
+        ));
+
+        filmStorage.addLike(film.getId(), user.getId());
+        Film filmWithLike = filmStorage.getById(film.getId());
+
+        assertEquals(1, filmWithLike.getLikes().size());
+        assertTrue(filmWithLike.getLikes().contains(user.getId()));
+
+        filmStorage.removeLike(film.getId(), user.getId());
+        Film filmWithoutLike = filmStorage.getById(film.getId());
+
+        assertTrue(filmWithoutLike.getLikes().isEmpty());
+    }
+
+    @Test
+    void testGetPopularFilms() {
+        User user1 = userStorage.create(createUser("pop1@mail.ru", "pop1", "Pop 1", LocalDate.of(2001, 1, 1)));
+        User user2 = userStorage.create(createUser("pop2@mail.ru", "pop2", "Pop 2", LocalDate.of(2002, 2, 2)));
+
+        Film film1 = filmStorage.create(createFilm(
+                "Popular Film",
+                "Popular description",
+                LocalDate.of(2010, 1, 1),
+                100,
+                new Mpa(1, "G"),
+                Set.of(new Genre(1, "Комедия"))
+        ));
+
+        Film film2 = filmStorage.create(createFilm(
+                "Less Popular Film",
+                "Less popular description",
+                LocalDate.of(2011, 1, 1),
+                110,
+                new Mpa(2, "PG"),
+                Set.of(new Genre(2, "Драма"))
+        ));
+
+        filmStorage.addLike(film1.getId(), user1.getId());
+        filmStorage.addLike(film1.getId(), user2.getId());
+        filmStorage.addLike(film2.getId(), user1.getId());
+
+        List<Film> popularFilms = filmStorage.getPopular(10);
+
+        assertFalse(popularFilms.isEmpty());
+        assertEquals(film1.getId(), popularFilms.get(0).getId());
+        assertEquals(film2.getId(), popularFilms.get(1).getId());
+    }
+
+    private User createUser(String email, String login, String name, LocalDate birthday) {
+        User user = new User();
+        user.setEmail(email);
+        user.setLogin(login);
+        user.setName(name);
+        user.setBirthday(birthday);
+        return user;
+    }
+
+    private Film createFilm(String name,
+                            String description,
+                            LocalDate releaseDate,
+                            Integer duration,
+                            Mpa mpa,
+                            Set<Genre> genres) {
+        Film film = new Film();
+        film.setName(name);
+        film.setDescription(description);
+        film.setReleaseDate(releaseDate);
+        film.setDuration(duration);
+        film.setMpa(mpa);
+        film.setGenres(genres);
+        return film;
     }
 }
